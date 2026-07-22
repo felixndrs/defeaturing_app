@@ -47,7 +47,12 @@ class StepImporter(Importer):
     def load(self, path: Path, role: ModelRole, model_id: str) -> GeometryModel:
         shape = self._read_shape(path)
         cache_shape(model_id, shape)
-        return build_model(shape, path, role, model_id, SourceFormat.STEP)
+        from ..storage import files
+
+        return build_model(
+            shape, path, role, model_id, SourceFormat.STEP,
+            glb_out=files.geometry_path(model_id),
+        )
 
     def _read_shape(self, path: Path) -> TopoDS_Shape:
         reader = STEPControl_Reader()
@@ -67,14 +72,26 @@ def build_model(
     role: ModelRole,
     model_id: str,
     source_format: SourceFormat,
+    glb_out: Path | None = None,
 ) -> GeometryModel:
     """Traverse an OCC shape into the internal data model.
 
     Shared with the synthetic test-body builder, so keep it free of STEP
-    specifics.
+    specifics. When `glb_out` is given, a GLB with one node per face id is
+    written there in the same pass, keeping the mesh's face ids identical to the
+    model's.
     """
+    shape_bbox = bounding_box(shape)
+
+    face_meshes: list = []
+    if glb_out is not None:
+        from ..geometry import tessellate
+
+        tessellate.ensure_mesh(shape, shape_bbox.diagonal)
+
     faces: list[Face] = []
     face_id_by_hash: dict[int, str] = {}
+    existing_ids: set[str] = set()
 
     for occ_face in iter_faces(shape):
         area, centroid = face_area_centroid(occ_face)
@@ -82,9 +99,18 @@ def build_model(
         fid = geometric_id("f", kind.value, area, centroid)
         # Two faces can share a geometric id only if they are truly congruent;
         # disambiguate the rare collision so ids stay unique within a model.
-        if fid in {f.id for f in faces}:
+        if fid in existing_ids:
             fid = geometric_id("f", kind.value, area, centroid, len(faces))
+        existing_ids.add(fid)
         face_id_by_hash[hash(occ_face)] = fid
+
+        if glb_out is not None:
+            from ..geometry import tessellate
+
+            mesh = tessellate.triangulate_face(occ_face)
+            if mesh is not None:
+                face_meshes.append((fid, mesh[0], mesh[1]))
+
         faces.append(
             Face(
                 id=fid,
@@ -136,6 +162,12 @@ def build_model(
             )
         )
 
+    if glb_out is not None:
+        from ..geometry import tessellate
+
+        glb_out.parent.mkdir(parents=True, exist_ok=True)
+        glb_out.write_bytes(tessellate.assemble_glb(face_meshes))
+
     return GeometryModel(
         id=model_id,
         role=role,
@@ -144,7 +176,7 @@ def build_model(
         solids=solids,
         faces=faces,
         edges=edges,
-        bbox=bounding_box(shape),
+        bbox=shape_bbox,
         volume=total_volume,
         area=sum(f.area for f in faces),
     )
