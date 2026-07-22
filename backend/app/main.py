@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import geometry, projects
+from .api import analysis, features, geometry, projects
 from .config import get_settings
 from .importers import supported_extensions
 
@@ -24,6 +24,8 @@ app.add_middleware(
 
 app.include_router(projects.router)
 app.include_router(geometry.router)
+app.include_router(analysis.router)
+app.include_router(features.router)
 
 
 @app.get("/health", tags=["meta"])

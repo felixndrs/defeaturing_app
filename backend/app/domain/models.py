@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field
 
 from .enums import (
     ChangeStatus,
@@ -149,7 +149,9 @@ class Evidence(Base):
     id: str
     kind: str
     description: str
-    values: dict[str, float | int | str | bool] = Field(default_factory=dict)
+    # Measured facts backing the classification. Usually scalars, but nested
+    # values (per-kind counts, a footprint) are allowed for richer evidence.
+    values: dict[str, Any] = Field(default_factory=dict)
     source_stage: str
 
 
@@ -247,6 +249,7 @@ class AnalysisRun(Base):
     created_at: datetime = Field(default_factory=_now)
     finished_at: datetime | None = None
 
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def progress(self) -> float:
         if not self.stages:
