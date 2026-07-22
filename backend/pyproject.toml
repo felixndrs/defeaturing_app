@@ -1,0 +1,34 @@
+[project]
+name = "defeaturing-review-backend"
+version = "0.1.0"
+description = "AI Defeaturing Review - backend"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "python-multipart>=0.0.12",
+    "sqlalchemy>=2.0",
+    "cadquery-ocp>=7.9",
+    "numpy>=1.26",
+    "trimesh>=4.5",
+    "meshio>=5.3",
+    "pygltflib>=1.16",
+    "anthropic>=0.40",
+    "reportlab>=4.2",
+]
+
+[project.optional-dependencies]
+render = ["pyvista>=0.44"]
+dev = ["pytest>=8.3", "httpx>=0.27"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

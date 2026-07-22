@@ -1,0 +1,25 @@
+# Not yet exercised: Docker is not installed on the current dev machine, so the
+# native workflow in README.md is the tested path. Kept in sync so the move to
+# Linux/cloud deployment stays a one-liner.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATA_DIR: /data
+      DATABASE_URL: sqlite:////data/app.db
+      LLM_PROVIDER: ${LLM_PROVIDER:-null}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CORS_ORIGINS: '["http://localhost:5173"]'
+    volumes:
+      - ./data:/data
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE: http://localhost:8000
+    depends_on:
+      - backend
