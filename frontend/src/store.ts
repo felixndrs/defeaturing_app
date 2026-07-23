@@ -17,8 +17,6 @@ interface ReviewState {
   decide: (id: string, decision: UserDecision) => Promise<void>;
   comment: (id: string, comment: string) => Promise<void>;
   reset: () => void;
-
-  selectedFeature: () => FeatureChange | null;
 }
 
 export const useReview = create<ReviewState>((set, get) => ({
@@ -91,12 +89,19 @@ export const useReview = create<ReviewState>((set, get) => ({
   reset() {
     set({ phase: "upload", error: "", project: null, run: null, selectedFeatureId: null });
   },
-
-  selectedFeature() {
-    const { run, selectedFeatureId } = get();
-    return run?.features.find((f) => f.id === selectedFeatureId) ?? null;
-  },
 }));
+
+// Derives the selected feature from primitive slices (run, selectedFeatureId),
+// so components re-render on selection change. A store method returning this
+// value (e.g. `selectedFeature: () => ...`) would NOT do that: zustand only
+// re-renders when the *selected slice* changes by reference, and a method
+// reference is stable across the store's lifetime even though what it
+// computes changes -- the classic "selector returns a function" trap.
+export function useSelectedFeature(): FeatureChange | null {
+  const run = useReview((s) => s.run);
+  const selectedFeatureId = useReview((s) => s.selectedFeatureId);
+  return run?.features.find((f) => f.id === selectedFeatureId) ?? null;
+}
 
 function replaceFeature(
   set: (partial: Partial<ReviewState>) => void,

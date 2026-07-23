@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { useReview } from "./store";
+import { useReview, useSelectedFeature } from "./store";
 import { UploadForm } from "./components/UploadForm";
 import { FeatureList } from "./components/FeatureList";
 import { FeatureDetail } from "./components/FeatureDetail";
@@ -35,7 +35,7 @@ export default function App() {
 function Review() {
   const run = useReview((s) => s.run)!;
   const project = useReview((s) => s.project)!;
-  const feature = useReview((s) => s.selectedFeature)();
+  const feature = useSelectedFeature();
   const select = useReview((s) => s.selectFeature);
   const decide = useReview((s) => s.decide);
   const reset = useReview((s) => s.reset);
