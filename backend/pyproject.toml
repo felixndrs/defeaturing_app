@@ -17,10 +17,11 @@ dependencies = [
     "pygltflib>=1.16",
     "anthropic>=0.40",
     "reportlab>=4.2",
+    "pyvista>=0.44",
+    "pillow>=10.0",
 ]
 
 [project.optional-dependencies]
-render = ["pyvista>=0.44"]
 dev = ["pytest>=8.3", "httpx>=0.27"]
 
 [build-system]
