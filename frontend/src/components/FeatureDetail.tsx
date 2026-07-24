@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useReview } from "../store";
 import type { FeatureChange } from "../types";
+import { RISK_LABEL } from "../labels";
 
 const RISK_CLASS: Record<string, string> = {
   low: "text-emerald-300",
@@ -44,11 +45,9 @@ export function FeatureDetail({ feature }: { feature: FeatureChange }) {
           <div className="mb-1">
             Risiko:{" "}
             <span className={`font-semibold ${RISK_CLASS[feature.assessment.risk]}`}>
-              {feature.assessment.risk}
+              {RISK_LABEL[feature.assessment.risk] ?? feature.assessment.risk}
             </span>{" "}
-            <span className="text-gray-500">
-              ({(feature.assessment.confidence * 100).toFixed(0)}%, {feature.assessment.provider})
-            </span>
+            <span className="text-gray-500">({feature.assessment.provider})</span>
           </div>
           <p className="text-gray-300">{feature.assessment.rationale}</p>
         </Section>

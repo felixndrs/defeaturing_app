@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useReview } from "../store";
 import type { FeatureChange } from "../types";
+import { RISK_LABEL } from "../labels";
 
 const DECISION_MARK: Record<string, string> = {
   accept: "✓",
@@ -56,7 +57,7 @@ export function FeatureList() {
                 <span
                   className={`rounded px-1.5 py-0.5 text-[10px] ${RISK_CLASS[f.assessment.risk]}`}
                 >
-                  {f.assessment.risk}
+                  {RISK_LABEL[f.assessment.risk] ?? f.assessment.risk}
                 </span>
               )}
             </button>

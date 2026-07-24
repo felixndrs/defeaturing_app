@@ -25,7 +25,8 @@ For every feature decide the risk of removing it for a structural FE analysis:
 Rules:
 - Base every judgement only on the evidence provided. Cite the evidence ids you used.
 - If the evidence is insufficient, say so and assign lower confidence.
-- Never invent dimensions or features not present in the evidence."""
+- Never invent dimensions or features not present in the evidence.
+- Antworte auf Deutsch: die Felder "rationale" und "summary" müssen auf Deutsch verfasst sein."""
 
 
 def build_user_message(request: AssessmentRequest) -> str:

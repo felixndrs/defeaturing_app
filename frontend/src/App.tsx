@@ -74,20 +74,6 @@ function Review() {
         </div>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-gray-500">j/k navigieren · a/r entscheiden</span>
-          <a
-            href={reportPdfUrl(run.id)}
-            download
-            className="rounded bg-edge px-3 py-1 text-sm hover:bg-gray-700"
-          >
-            PDF-Bericht
-          </a>
-          <a
-            href={reportBundleUrl(run.id)}
-            download
-            className="rounded bg-edge px-3 py-1 text-sm hover:bg-gray-700"
-          >
-            Review-Paket (HTML)
-          </a>
           <button onClick={reset} className="rounded bg-edge px-3 py-1 text-sm">
             Neues Projekt
           </button>
@@ -102,8 +88,27 @@ function Review() {
       )}
 
       <div className="flex min-h-0 flex-1">
-        <aside className="w-64 shrink-0 border-r border-edge bg-panel">
-          <FeatureList />
+        <aside className="flex w-64 shrink-0 flex-col border-r border-edge bg-panel">
+          <div className="flex items-center gap-2 border-b border-edge px-3 py-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Report</span>
+            <a
+              href={reportPdfUrl(run.id)}
+              download
+              className="ml-auto rounded bg-edge px-2 py-1 text-xs hover:bg-gray-700"
+            >
+              PDF
+            </a>
+            <a
+              href={reportBundleUrl(run.id)}
+              download
+              className="rounded bg-edge px-2 py-1 text-xs hover:bg-gray-700"
+            >
+              HTML-Paket
+            </a>
+          </div>
+          <div className="min-h-0 flex-1">
+            <FeatureList />
+          </div>
         </aside>
         <main className="min-w-0 flex-1">
           {project.original && project.defeatured && (

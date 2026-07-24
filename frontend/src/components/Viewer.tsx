@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Grid, Html, Text } from "@react-three/drei";
+import { OrbitControls, useGLTF, Grid, Html, Text, GizmoHelper, GizmoViewport } from "@react-three/drei";
 import * as THREE from "three";
 import { geometryUrl } from "../api";
 import type { FeatureChange } from "../types";
@@ -66,6 +66,41 @@ function Model({
   }, [cloned, highlightIds]);
 
   return <primitive object={cloned} position={position} />;
+}
+
+/**
+ * Floor "imprint" label readable from all four cardinal directions. A single
+ * flat Text is only legible (unmirrored) from one side; four copies spun
+ * around the text's own normal (before it's laid flat) cover every approach
+ * angle when orbiting.
+ */
+function FloorLabel({
+  position,
+  fontSize,
+  children,
+}: {
+  position: [number, number, number];
+  fontSize: number;
+  children: string;
+}) {
+  const spins = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
+  return (
+    <>
+      {spins.map((spin) => (
+        <Text
+          key={spin}
+          position={position}
+          rotation={[-Math.PI / 2, 0, spin]}
+          fontSize={fontSize}
+          color="#475569"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {children}
+        </Text>
+      ))}
+    </>
+  );
 }
 
 /** Re-centres the orbit target on the selected feature so both models frame it. */
@@ -137,28 +172,17 @@ function Scene({
         infiniteGrid
         fadeDistance={gap * 8}
       />
-      <Text
-        position={[0, 0.02, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={labelSize}
-        color="#475569"
-        anchorX="center"
-        anchorY="middle"
-      >
+      <FloorLabel position={[0, 0.02, 0]} fontSize={labelSize}>
         ORIGINAL
-      </Text>
-      <Text
-        position={[gap, 0.02, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={labelSize}
-        color="#475569"
-        anchorX="center"
-        anchorY="middle"
-      >
+      </FloorLabel>
+      <FloorLabel position={[gap, 0.02, 0]} fontSize={labelSize}>
         DEFEATURED
-      </Text>
+      </FloorLabel>
       <OrbitControls ref={controls} makeDefault target={[gap / 2, 0, 0]} />
       <FocusTarget controls={controls} feature={feature} />
+      <GizmoHelper alignment="bottom-right" margin={[64, 64]} onUpdate={() => controls.current?.update()}>
+        <GizmoViewport axisColors={["#f87171", "#4ade80", "#60a5fa"]} labelColor="black" />
+      </GizmoHelper>
     </>
   );
 }

@@ -37,10 +37,10 @@ class NullProvider(LLMProvider):
             risk = _RISK.get(fe.feature_type, RiskLevel.MEDIUM)
             params = ", ".join(f"{k}={_fmt(v)}" for k, v in fe.parameters.items() if v is not None)
             rationale = (
-                f"Detected as {fe.feature_type} ({params or 'no parameters'}). "
-                f"{'Small blends have limited effect on global stiffness.' if risk is RiskLevel.LOW else ''}"
-                f"{'Load-bearing or unclassified; verify before discarding.' if risk is RiskLevel.HIGH else ''}"
-                f"{'Moderate impact; keep if near stress concentrations.' if risk is RiskLevel.MEDIUM else ''}"
+                f"Erkannt als {fe.feature_type} ({params or 'keine Parameter'}). "
+                f"{'Kleine Verrundungen haben kaum Einfluss auf die globale Steifigkeit.' if risk is RiskLevel.LOW else ''}"
+                f"{'Lasttragend oder unklassifiziert; vor dem Verwerfen prüfen.' if risk is RiskLevel.HIGH else ''}"
+                f"{'Moderater Einfluss; beibehalten, falls nahe an Spannungskonzentrationen.' if risk is RiskLevel.MEDIUM else ''}"
             ).strip()
             per_feature[fe.feature_id] = Assessment(
                 rationale=rationale,
@@ -53,8 +53,8 @@ class NullProvider(LLMProvider):
         n = len(request.features)
         high = sum(1 for a in per_feature.values() if a.risk is RiskLevel.HIGH)
         summary = (
-            f"{n} geometry change(s) detected. "
-            f"{high} flagged high-risk and should be reviewed before acceptance."
+            f"{n} Geometrieänderung(en) erkannt. "
+            f"{high} als hohes Risiko eingestuft und sollten vor der Übernahme geprüft werden."
         )
         return AssessmentResponse(summary=summary, per_feature=per_feature)
 
