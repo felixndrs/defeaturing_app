@@ -59,3 +59,11 @@ export async function patchFeature(
 export function geometryUrl(modelId: string): string {
   return `${BASE}/geometry/${modelId}.glb`;
 }
+
+export function reportPdfUrl(runId: string): string {
+  return `${BASE}/report/${runId}/pdf`;
+}
+
+export function reportBundleUrl(runId: string): string {
+  return `${BASE}/report/${runId}/bundle`;
+}

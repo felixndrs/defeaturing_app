@@ -77,6 +77,14 @@ export const useReview = create<ReviewState>((set, get) => ({
     if (!run) return;
     const updated = await api.patchFeature(run.id, id, { user_decision: decision });
     replaceFeature(set, get, updated);
+
+    // Jump to the next undecided feature so the decision has an immediate,
+    // visible consequence -- otherwise only a small ring/checkmark changes,
+    // which reads as "nothing happened" once there are many features to review.
+    const { run: current } = get();
+    if (!current) return;
+    const next = nextUndecidedId(current.features, id);
+    if (next) set({ selectedFeatureId: next });
   },
 
   async comment(id, comment) {
@@ -101,6 +109,19 @@ export function useSelectedFeature(): FeatureChange | null {
   const run = useReview((s) => s.run);
   const selectedFeatureId = useReview((s) => s.selectedFeatureId);
   return run?.features.find((f) => f.id === selectedFeatureId) ?? null;
+}
+
+/** Next undecided feature after `afterId`, wrapping around; null if none left. */
+function nextUndecidedId(features: FeatureChange[], afterId: string): string | null {
+  const start = features.findIndex((f) => f.id === afterId);
+  if (start === -1) return null;
+  for (let step = 1; step <= features.length; step++) {
+    const candidate = features[(start + step) % features.length];
+    if (candidate.id !== afterId && candidate.user_decision === "undecided") {
+      return candidate.id;
+    }
+  }
+  return null;
 }
 
 function replaceFeature(

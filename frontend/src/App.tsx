@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { reportBundleUrl, reportPdfUrl } from "./api";
 import { useReview, useSelectedFeature } from "./store";
 import { UploadForm } from "./components/UploadForm";
 import { FeatureList } from "./components/FeatureList";
@@ -73,6 +74,20 @@ function Review() {
         </div>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-gray-500">j/k navigieren · a/r entscheiden</span>
+          <a
+            href={reportPdfUrl(run.id)}
+            download
+            className="rounded bg-edge px-3 py-1 text-sm hover:bg-gray-700"
+          >
+            PDF-Bericht
+          </a>
+          <a
+            href={reportBundleUrl(run.id)}
+            download
+            className="rounded bg-edge px-3 py-1 text-sm hover:bg-gray-700"
+          >
+            Review-Paket (HTML)
+          </a>
           <button onClick={reset} className="rounded bg-edge px-3 py-1 text-sm">
             Neues Projekt
           </button>

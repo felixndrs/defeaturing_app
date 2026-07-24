@@ -1,12 +1,16 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Grid, Html } from "@react-three/drei";
+import { OrbitControls, useGLTF, Grid, Html, Text } from "@react-three/drei";
 import * as THREE from "three";
 import { geometryUrl } from "../api";
 import type { FeatureChange } from "../types";
 
-const BASE_COLOR = new THREE.Color("#8b93a1");
+const BASE_COLOR = new THREE.Color("#9aa3b0");
 const HIGHLIGHT_COLOR = new THREE.Color("#f59e0b");
+const EDGE_COLOR = new THREE.Color("#3f4756");
+// Dihedral angle (degrees) above which an edge is drawn -- keeps rounded
+// fillets smooth while still outlining every real feature boundary.
+const EDGE_THRESHOLD_DEG = 20;
 
 /**
  * One model, with the faces belonging to the selected feature painted in the
@@ -35,6 +39,15 @@ function Model({
           roughness: 0.7,
           side: THREE.DoubleSide,
         });
+        // Crisp CAD-style edge lines on top of the shaded face, so feature
+        // boundaries (fillet start, hole rim, ...) stay legible without
+        // relying on lighting gradients alone.
+        const edges = new THREE.LineSegments(
+          new THREE.EdgesGeometry(mesh.geometry, EDGE_THRESHOLD_DEG),
+          new THREE.LineBasicMaterial({ color: EDGE_COLOR }),
+        );
+        edges.name = "__edges";
+        mesh.add(edges);
       }
     });
     return copy;
@@ -99,11 +112,17 @@ function Scene({
     [feature],
   );
 
+  // "Imprint" labels lying flat on the grid under each model. Unlike a fixed
+  // screen-space overlay, these are part of the 3D scene: they rotate with
+  // the camera and always stay under their model, so orbiting never breaks
+  // the original/defeatured association.
+  const labelSize = Math.max(gap * 0.055, 1.5);
+
   return (
     <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[1, 2, 3]} intensity={1.1} />
-      <directionalLight position={[-2, -1, -1]} intensity={0.4} />
+      <ambientLight intensity={0.85} />
+      <directionalLight position={[1, 2, 3]} intensity={1.2} />
+      <directionalLight position={[-2, -1, -1]} intensity={0.5} />
       <Suspense fallback={<Html center>Lade Original…</Html>}>
         <Model modelId={originalId} position={[0, 0, 0]} highlightIds={originalHi} />
       </Suspense>
@@ -113,11 +132,31 @@ function Scene({
       <Grid
         position={[gap / 2, -0.01, 0]}
         args={[gap * 4, gap * 4]}
-        cellColor="#1f2937"
-        sectionColor="#374151"
+        cellColor="#c7ccd4"
+        sectionColor="#a3aab5"
         infiniteGrid
         fadeDistance={gap * 8}
       />
+      <Text
+        position={[0, 0.02, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={labelSize}
+        color="#475569"
+        anchorX="center"
+        anchorY="middle"
+      >
+        ORIGINAL
+      </Text>
+      <Text
+        position={[gap, 0.02, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={labelSize}
+        color="#475569"
+        anchorX="center"
+        anchorY="middle"
+      >
+        DEFEATURED
+      </Text>
       <OrbitControls ref={controls} makeDefault target={[gap / 2, 0, 0]} />
       <FocusTarget controls={controls} feature={feature} />
     </>
@@ -137,14 +176,8 @@ export function Viewer({
 }) {
   return (
     <div className="relative h-full w-full">
-      <div className="pointer-events-none absolute left-3 top-2 z-10 text-xs font-medium text-gray-400">
-        Original
-      </div>
-      <div className="pointer-events-none absolute right-3 top-2 z-10 text-xs font-medium text-gray-400">
-        Defeatured
-      </div>
       <Canvas camera={{ position: [gap, gap, gap * 1.6], fov: 45, near: 0.1, far: gap * 40 }}>
-        <color attach="background" args={["#0b0f19"]} />
+        <color attach="background" args={["#e7eaef"]} />
         <Scene
           originalId={originalId}
           defeaturedId={defeaturedId}
