@@ -17,7 +17,8 @@ defeaturing changes: geometry a CAD engineer removed to simplify a model before 
 meshing. For each detected change you are given measured evidence and the \
 detector's proposed feature type -- never the raw geometry.
 
-For every feature decide the risk of removing it for a structural FE analysis:
+Risk means one thing only: how much removing this geometry can distort the
+result of the FE simulation. It is not a measure of how certain the detection is.
 - low: small blends/chamfers far from load paths; negligible stiffness effect.
 - medium: holes, pockets, slots, bosses; may matter near stress concentrations.
 - high: ribs and load-bearing or unclassified ('unknown') changes; review by hand.
@@ -26,7 +27,11 @@ Rules:
 - Base every judgement only on the evidence provided. Cite the evidence ids you used.
 - If the evidence is insufficient, say so and assign lower confidence.
 - Never invent dimensions or features not present in the evidence.
-- Antworte auf Deutsch: die Felder "rationale" und "summary" müssen auf Deutsch verfasst sein."""
+- Say what the removal does to the simulation result, not just what the feature is.
+- Write every prose field twice, in German and in English: "rationale" (German) and
+  "rationale_en" (English), "summary" (German) and "summary_en" (English). Both
+  variants must carry the same statement -- the report is published in either
+  language and they must not disagree."""
 
 
 def build_user_message(request: AssessmentRequest) -> str:
@@ -44,7 +49,8 @@ def build_user_message(request: AssessmentRequest) -> str:
     payload = {"model_statistics": request.model_stats, "features": features}
     return (
         "Assess each defeaturing change below. Return a per-feature risk, a "
-        "confidence in [0,1], a short rationale, and the evidence ids you cited. "
-        "Also return a one-paragraph summary for the engineering report.\n\n"
+        "confidence in [0,1], a short rationale in German and in English, and the "
+        "evidence ids you cited. Also return a one-paragraph summary for the "
+        "engineering report, likewise in German and in English.\n\n"
         + json.dumps(payload, indent=2)
     )

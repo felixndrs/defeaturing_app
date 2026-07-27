@@ -24,11 +24,13 @@ class _FeatureAssessment(BaseModel):
     risk: Literal["low", "medium", "high"]
     confidence: float
     rationale: str
+    rationale_en: str
     cited_evidence_ids: list[str]
 
 
 class _RunAssessment(BaseModel):
     summary: str
+    summary_en: str
     features: list[_FeatureAssessment]
 
 
@@ -55,10 +57,13 @@ class ClaudeProvider(LLMProvider):
         for fa in parsed.features:
             per_feature[fa.feature_id] = Assessment(
                 rationale=fa.rationale,
+                rationale_en=fa.rationale_en,
                 risk=RiskLevel(fa.risk),
                 confidence=max(0.0, min(1.0, fa.confidence)),
                 cited_evidence_ids=fa.cited_evidence_ids,
                 provider=self.name,
                 model=settings.llm_model,
             )
-        return AssessmentResponse(summary=parsed.summary, per_feature=per_feature)
+        return AssessmentResponse(
+            summary=parsed.summary, summary_en=parsed.summary_en, per_feature=per_feature
+        )

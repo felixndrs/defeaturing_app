@@ -1,16 +1,24 @@
 import { useState } from "react";
+import { useT } from "../i18n";
 import { useReview } from "../store";
+import { LanguageSwitch } from "./LanguageSwitch";
 
 export function UploadForm() {
   const uploadAndAnalyze = useReview((s) => s.uploadAndAnalyze);
-  const [name, setName] = useState("Defeaturing Review");
+  const { t } = useT();
+  // Seeded once from the language active on first render; switching languages
+  // later must not overwrite a name the user typed.
+  const [name, setName] = useState(() => t("upload.defaultName"));
   const [original, setOriginal] = useState<File | null>(null);
   const [defeatured, setDefeatured] = useState<File | null>(null);
 
   const ready = original && defeatured && name.trim();
 
   return (
-    <div className="flex h-full items-center justify-center">
+    <div className="relative flex h-full items-center justify-center">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitch />
+      </div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -18,13 +26,11 @@ export function UploadForm() {
         }}
         className="w-[28rem] rounded-xl border border-edge bg-panel p-6 shadow-xl"
       >
-        <h1 className="text-xl font-semibold text-gray-100">AI Defeaturing Review</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          Original- und vereinfachtes STEP-Modell hochladen.
-        </p>
+        <h1 className="text-xl font-semibold text-gray-100">{t("app.title")}</h1>
+        <p className="mt-1 text-sm text-gray-400">{t("upload.subtitle")}</p>
 
         <label className="mt-5 block text-sm text-gray-300">
-          Projektname
+          {t("upload.projectName")}
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -32,15 +38,15 @@ export function UploadForm() {
           />
         </label>
 
-        <FileField label="Original (STEP)" onChange={setOriginal} file={original} />
-        <FileField label="Defeatured (STEP)" onChange={setDefeatured} file={defeatured} />
+        <FileField label={t("upload.original")} onChange={setOriginal} file={original} />
+        <FileField label={t("upload.defeatured")} onChange={setDefeatured} file={defeatured} />
 
         <button
           type="submit"
           disabled={!ready}
           className="mt-6 w-full rounded bg-amber-600 py-2.5 font-medium text-white hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Analyse starten
+          {t("upload.start")}
         </button>
       </form>
     </div>

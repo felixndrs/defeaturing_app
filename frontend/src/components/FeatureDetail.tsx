@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { useT } from "../i18n";
 import { useReview } from "../store";
 import type { FeatureChange } from "../types";
-import { RISK_LABEL } from "../labels";
 
 const RISK_CLASS: Record<string, string> = {
   low: "text-emerald-300",
@@ -9,59 +9,61 @@ const RISK_CLASS: Record<string, string> = {
   high: "text-rose-300",
 };
 
-function fmt(v: unknown): string {
-  if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(3);
-  if (Array.isArray(v)) return v.map(fmt).join(", ");
-  return String(v);
-}
-
 export function FeatureDetail({ feature }: { feature: FeatureChange }) {
   const decide = useReview((s) => s.decide);
   const comment = useReview((s) => s.comment);
   const [draft, setDraft] = useState(feature.user_comment);
+  const { t, featureType, risk, parameter, evidenceKind, evidenceDescription, paramValue, prose } =
+    useT();
 
   useEffect(() => setDraft(feature.user_comment), [feature.id, feature.user_comment]);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-4 text-sm">
-      <h2 className="text-lg font-semibold capitalize text-gray-100">{feature.type}</h2>
+      <h2 className="text-lg font-semibold text-gray-100">{featureType(feature.type)}</h2>
       <div className="mt-1 text-xs text-gray-500">
-        detektiert von {feature.detector} · Konfidenz {(feature.confidence * 100).toFixed(0)}%
+        {t("detail.detectedBy")} {feature.detector} · {t("detail.confidence")}{" "}
+        {(feature.confidence * 100).toFixed(0)}%
       </div>
 
-      <Section title="Parameter">
+      <Section title={t("detail.parameters")}>
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
           {Object.entries(feature.parameters).map(([k, v]) => (
             <div key={k} className="contents">
-              <dt className="text-gray-400">{k}</dt>
-              <dd className="text-gray-200">{fmt(v)}</dd>
+              <dt className="text-gray-400">{parameter(k)}</dt>
+              <dd className="text-gray-200">{paramValue(k, v)}</dd>
             </div>
           ))}
         </dl>
       </Section>
 
       {feature.assessment && (
-        <Section title="KI-Bewertung">
-          <div className="mb-1">
-            Risiko:{" "}
+        <Section title={t("detail.assessment")}>
+          <div>
+            {t("detail.risk")}:{" "}
             <span className={`font-semibold ${RISK_CLASS[feature.assessment.risk]}`}>
-              {RISK_LABEL[feature.assessment.risk] ?? feature.assessment.risk}
-            </span>{" "}
-            <span className="text-gray-500">({feature.assessment.provider})</span>
+              {risk(feature.assessment.risk)}
+            </span>
           </div>
-          <p className="text-gray-300">{feature.assessment.rationale}</p>
+          {/* Spells out which risk is meant -- the reading the report uses too. */}
+          <div className="mb-1.5 text-[11px] text-gray-500">{t("detail.riskHint")}</div>
+          <p className="text-gray-300">
+            {prose(feature.assessment.rationale, feature.assessment.rationale_en)}
+          </p>
         </Section>
       )}
 
-      <Section title={`Evidenzen (${feature.evidence.length})`}>
+      <Section title={`${t("detail.evidence")} (${feature.evidence.length})`}>
         <ul className="space-y-2">
           {feature.evidence.map((e) => (
             <li key={e.id} className="rounded bg-black/30 p-2">
-              <div className="text-xs font-medium text-gray-300">{e.kind}</div>
-              <div className="text-xs text-gray-400">{e.description}</div>
+              <div className="text-xs font-medium text-gray-300">{evidenceKind(e.kind)}</div>
+              <div className="text-xs text-gray-400">
+                {evidenceDescription(e.kind, e.description)}
+              </div>
               <div className="mt-1 font-mono text-[11px] text-gray-500">
                 {Object.entries(e.values)
-                  .map(([k, v]) => `${k}=${fmt(v)}`)
+                  .map(([k, v]) => `${parameter(k)}=${paramValue(k, v)}`)
                   .join("  ")}
               </div>
             </li>
@@ -69,14 +71,14 @@ export function FeatureDetail({ feature }: { feature: FeatureChange }) {
         </ul>
       </Section>
 
-      <Section title="Kommentar">
+      <Section title={t("detail.comment")}>
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => draft !== feature.user_comment && comment(feature.id, draft)}
           rows={3}
           className="w-full rounded border border-edge bg-black/40 p-2 text-gray-200 outline-none focus:border-amber-500"
-          placeholder="Anmerkung zur Entscheidung…"
+          placeholder={t("detail.commentPlaceholder")}
         />
       </Section>
 
@@ -86,14 +88,14 @@ export function FeatureDetail({ feature }: { feature: FeatureChange }) {
           onClick={() => decide(feature.id, "accept")}
           className="bg-emerald-700 hover:bg-emerald-600"
         >
-          Beibehalten (a)
+          {t("detail.keep")}
         </DecisionButton>
         <DecisionButton
           active={feature.user_decision === "reject"}
           onClick={() => decide(feature.id, "reject")}
           className="bg-rose-700 hover:bg-rose-600"
         >
-          Verwerfen (r)
+          {t("detail.discard")}
         </DecisionButton>
       </div>
     </div>

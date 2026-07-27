@@ -37,6 +37,9 @@ export interface Evidence {
 
 export interface Assessment {
   rationale: string;
+  // English variant, produced alongside the German one during the analysis.
+  // Empty for runs analysed before the language switch existed.
+  rationale_en: string;
   risk: "low" | "medium" | "high";
   confidence: number;
   cited_evidence_ids: string[];
@@ -88,5 +91,6 @@ export interface AnalysisRun {
   features: FeatureChange[];
   statistics: RunStatistics;
   llm_summary: string;
+  llm_summary_en: string;
   error: string;
 }

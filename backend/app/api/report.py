@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 
+from .. import i18n
 from ..domain.models import AnalysisRun, GeometryModel, Project
 from ..reporting import html_bundle, pdf, screenshots
 from ..storage import db
@@ -25,8 +26,9 @@ def _load_run_project_models(run_id: str) -> tuple[AnalysisRun, Project, Geometr
 
 
 @router.get("/{run_id}/pdf")
-def get_pdf(run_id: str) -> FileResponse:
+def get_pdf(run_id: str, lang: str = Query(default="de")) -> FileResponse:
     run, project, original, defeatured = _load_run_project_models(run_id)
+    language = i18n.normalize_lang(lang)
 
     for feature in run.features:
         try:
@@ -36,12 +38,20 @@ def get_pdf(run_id: str) -> FileResponse:
             # omits images for that feature.
             continue
 
-    path = pdf.build_report(run, project)
-    return FileResponse(path, media_type="application/pdf", filename=f"report_{run_id}.pdf")
+    path = pdf.build_report(run, project, lang=language)
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=pdf.report_filename(project, run, language),
+    )
 
 
 @router.get("/{run_id}/bundle")
 def get_bundle(run_id: str) -> FileResponse:
     run, project, original, defeatured = _load_run_project_models(run_id)
     path = html_bundle.build_bundle(run, project, original, defeatured)
-    return FileResponse(path, media_type="application/zip", filename=f"review_bundle_{run_id}.zip")
+    return FileResponse(
+        path,
+        media_type="application/zip",
+        filename=html_bundle.bundle_filename(project, run),
+    )

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
+import { useT } from "../i18n";
 import { useReview } from "../store";
 import type { FeatureChange } from "../types";
-import { RISK_LABEL } from "../labels";
 
 const DECISION_MARK: Record<string, string> = {
   accept: "✓",
@@ -23,12 +23,15 @@ export function FeatureList() {
   const run = useReview((s) => s.run);
   const selectedId = useReview((s) => s.selectedFeatureId);
   const select = useReview((s) => s.selectFeature);
+  const { featureType, risk } = useT();
 
   const groups = useMemo(() => {
     const byType: Record<string, FeatureChange[]> = {};
     for (const f of run?.features ?? []) (byType[f.type] ??= []).push(f);
-    return Object.entries(byType).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [run]);
+    return Object.entries(byType).sort((a, b) =>
+      featureType(a[0], true).localeCompare(featureType(b[0], true)),
+    );
+  }, [run, featureType]);
 
   if (!run) return null;
 
@@ -37,7 +40,7 @@ export function FeatureList() {
       {groups.map(([type, items]) => (
         <div key={type}>
           <div className="sticky top-0 bg-panel px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            {type} <span className="text-gray-600">({items.length})</span>
+            {featureType(type, true)} <span className="text-gray-600">({items.length})</span>
           </div>
           {items.map((f) => (
             <button
@@ -50,14 +53,18 @@ export function FeatureList() {
               <span className={DECISION_CLASS[f.user_decision]}>
                 {DECISION_MARK[f.user_decision]}
               </span>
-              <span className="flex-1 truncate text-gray-200">
-                {f.type}-{f.id.slice(3, 9)}
+              <span
+                className={`flex-1 truncate ${
+                  f.user_decision === "reject" ? "text-gray-500 line-through" : "text-gray-200"
+                }`}
+              >
+                {featureType(f.type)} {f.id.slice(3, 9)}
               </span>
               {f.assessment && (
                 <span
                   className={`rounded px-1.5 py-0.5 text-[10px] ${RISK_CLASS[f.assessment.risk]}`}
                 >
-                  {RISK_LABEL[f.assessment.risk] ?? f.assessment.risk}
+                  {risk(f.assessment.risk)}
                 </span>
               )}
             </button>

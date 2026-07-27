@@ -161,9 +161,16 @@ class GeometryRefs(Base):
 
 
 class Assessment(Base):
-    """LLM judgement about a single feature change."""
+    """LLM judgement about a single feature change.
+
+    The rationale is stored in both UI languages: it is prose the provider
+    writes, so it cannot be looked up in a translation table, and the offline
+    review bundle has no way to call a model later. `rationale_en` is optional
+    so runs analysed before the language switch existed still load.
+    """
 
     rationale: str
+    rationale_en: str = ""
     risk: RiskLevel
     confidence: float = Field(ge=0.0, le=1.0)
     cited_evidence_ids: list[str] = Field(default_factory=list)
@@ -245,6 +252,7 @@ class AnalysisRun(Base):
     features: list[FeatureChange] = Field(default_factory=list)
     statistics: RunStatistics = Field(default_factory=RunStatistics)
     llm_summary: str = ""
+    llm_summary_en: str = ""
     error: str = ""
     created_at: datetime = Field(default_factory=_now)
     finished_at: datetime | None = None

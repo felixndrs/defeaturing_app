@@ -1,9 +1,11 @@
 import { useEffect, useMemo } from "react";
-import { reportBundleUrl, reportPdfUrl } from "./api";
+import { useT } from "./i18n";
 import { useReview, useSelectedFeature } from "./store";
 import { UploadForm } from "./components/UploadForm";
 import { FeatureList } from "./components/FeatureList";
 import { FeatureDetail } from "./components/FeatureDetail";
+import { LanguageSwitch } from "./components/LanguageSwitch";
+import { ReportActions } from "./components/ReportActions";
 import { Viewer } from "./components/Viewer";
 
 export default function App() {
@@ -11,6 +13,7 @@ export default function App() {
   const error = useReview((s) => s.error);
   const reset = useReview((s) => s.reset);
   const loadRun = useReview((s) => s.loadRun);
+  const { t } = useT();
 
   // Deep-link support: ?run=<id> reopens an existing review without re-uploading.
   useEffect(() => {
@@ -19,14 +22,15 @@ export default function App() {
   }, [loadRun]);
 
   if (phase === "upload") return <UploadForm />;
-  if (phase === "analyzing")
-    return <Centered>Analyse läuft… Modelle werden verglichen.</Centered>;
+  if (phase === "analyzing") return <Centered>{t("app.analyzing")}</Centered>;
   if (phase === "error")
     return (
       <Centered>
-        <div className="text-rose-400">Fehler: {error}</div>
+        <div className="text-rose-400">
+          {t("app.error")}: {error}
+        </div>
         <button onClick={reset} className="mt-3 rounded bg-edge px-3 py-1.5 text-sm">
-          Zurück
+          {t("app.back")}
         </button>
       </Centered>
     );
@@ -40,6 +44,7 @@ function Review() {
   const select = useReview((s) => s.selectFeature);
   const decide = useReview((s) => s.decide);
   const reset = useReview((s) => s.reset);
+  const { t, prose } = useT();
 
   const gap = useMemo(
     () => Math.max(20, Math.cbrt(run.statistics.volume_original || 1000) * 2.4),
@@ -63,49 +68,35 @@ function Review() {
   }, [run, feature, select, decide]);
 
   const decided = run.features.filter((f) => f.user_decision !== "undecided").length;
+  const summary = prose(run.llm_summary, run.llm_summary_en);
 
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-4 border-b border-edge px-4 py-2">
         <div className="font-semibold text-gray-100">{project.name}</div>
         <div className="text-xs text-gray-400">
-          {run.features.length} Änderungen · {run.statistics.unknown_count} unklassifiziert ·{" "}
-          {decided}/{run.features.length} entschieden
+          {run.features.length} {t("app.changes")} · {run.statistics.unknown_count}{" "}
+          {t("app.unclassified")} · {decided}/{run.features.length} {t("app.decided")}
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-gray-500">j/k navigieren · a/r entscheiden</span>
+          <span className="text-xs text-gray-500">{t("app.shortcuts")}</span>
           <button onClick={reset} className="rounded bg-edge px-3 py-1 text-sm">
-            Neues Projekt
+            {t("app.newProject")}
           </button>
+          <LanguageSwitch />
         </div>
       </header>
 
-      {run.llm_summary && (
+      {summary && (
         <div className="border-b border-edge bg-black/20 px-4 py-2 text-xs text-gray-300">
-          <span className="font-semibold text-gray-400">KI-Zusammenfassung: </span>
-          {run.llm_summary}
+          <span className="font-semibold text-gray-400">{t("app.summary")}: </span>
+          {summary}
         </div>
       )}
 
       <div className="flex min-h-0 flex-1">
         <aside className="flex w-64 shrink-0 flex-col border-r border-edge bg-panel">
-          <div className="flex items-center gap-2 border-b border-edge px-3 py-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Report</span>
-            <a
-              href={reportPdfUrl(run.id)}
-              download
-              className="ml-auto rounded bg-edge px-2 py-1 text-xs hover:bg-gray-700"
-            >
-              PDF
-            </a>
-            <a
-              href={reportBundleUrl(run.id)}
-              download
-              className="rounded bg-edge px-2 py-1 text-xs hover:bg-gray-700"
-            >
-              HTML-Paket
-            </a>
-          </div>
+          <ReportActions runId={run.id} projectName={project.name} />
           <div className="min-h-0 flex-1">
             <FeatureList />
           </div>
@@ -124,7 +115,7 @@ function Review() {
           {feature ? (
             <FeatureDetail feature={feature} />
           ) : (
-            <div className="p-4 text-sm text-gray-500">Kein Feature ausgewählt.</div>
+            <div className="p-4 text-sm text-gray-500">{t("app.noSelection")}</div>
           )}
         </aside>
       </div>

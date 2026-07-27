@@ -55,3 +55,4 @@ def assess_run(run: AnalysisRun, original: GeometryModel, defeatured: GeometryMo
         if (assessment := result.per_feature.get(feature.id)) is not None:
             feature.assessment = assessment
     run.llm_summary = result.summary
+    run.llm_summary_en = result.summary_en

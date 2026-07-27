@@ -43,8 +43,10 @@ def screenshot_path(run_id: str, feature_id: str, view: str) -> Path:
     return _ensure(artifact_dir(run_id) / "screenshots") / f"{feature_id}_{view}.png"
 
 
-def report_path(run_id: str) -> Path:
-    return artifact_dir(run_id) / "report.pdf"
+def report_path(run_id: str, lang: str = "de") -> Path:
+    # One file per language: the two reports differ in content, and building
+    # both must not have them overwrite each other.
+    return artifact_dir(run_id) / f"report_{lang}.pdf"
 
 
 def bundle_path(run_id: str) -> Path:

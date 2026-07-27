@@ -36,6 +36,9 @@ class AssessmentRequest:
 class AssessmentResponse:
     summary: str
     per_feature: dict[str, Assessment]  # keyed by feature_id
+    # English variant of the summary. Empty means the provider only produced
+    # one language; consumers fall back to `summary`.
+    summary_en: str = ""
 
 
 class LLMProvider(abc.ABC):
