@@ -1,10 +1,17 @@
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Grid, Html, Text, GizmoHelper, GizmoViewport } from "@react-three/drei";
 import * as THREE from "three";
 import { geometryUrl } from "../api";
 import { useT } from "../i18n";
 import type { FeatureChange } from "../types";
+import {
+  clipPlanes,
+  floorLevels,
+  footprintCorners,
+  labelPlacement,
+  quadrantOf,
+} from "../viewerLayout";
 import { backgroundOf, partColorOf, useViewerTheme } from "../viewerTheme";
 import { ViewerControls } from "./ViewerControls";
 
@@ -25,12 +32,14 @@ function Model({
   highlightIds,
   baseColor,
   edgeColor,
+  onBounds,
 }: {
   modelId: string;
   position: [number, number, number];
   highlightIds: Set<string>;
   baseColor: string;
   edgeColor: string;
+  onBounds?: (box: THREE.Box3) => void;
 }) {
   const { scene } = useGLTF(geometryUrl(modelId));
 
@@ -81,56 +90,91 @@ function Model({
     });
   }, [cloned, edgeColor]);
 
+  // World-space bounding box of this model, so the floor label can trace the
+  // real footprint instead of a guessed radius. Depends on the position
+  // components, not on the array: a fresh `[0, 0, 0]` literal on every render
+  // would re-run the effect and loop against the parent's state update.
+  const [px, py, pz] = position;
+  useEffect(() => {
+    if (!onBounds) return;
+    cloned.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(cloned).translate(new THREE.Vector3(px, py, pz));
+    if (!box.isEmpty()) onBounds(box);
+  }, [cloned, onBounds, px, py, pz]);
+
   return <primitive object={cloned} position={position} />;
 }
 
 /**
- * Floor "imprint" label that always faces the camera.
+ * Floor annotation for one model: the outline of its footprint plus the name
+ * written along one edge of that rectangle, like a plan-view drawing.
  *
- * It rides on a circle around its model and turns with the orbit, so it stays
- * between the viewer and the part: upright from every angle, and never drawn
- * across the geometry it is labelling.
+ * The outline is world-fixed and turns with the scene. The caption jumps
+ * between the four edges as the camera orbits, always landing on the edge
+ * nearest the viewer -- that keeps it upright and outside the part from every
+ * direction, without the wobble of a continuously camera-facing label.
  */
-function FloorLabel({
-  center,
-  radius,
-  fontSize,
+function FootprintLabel({
+  box,
+  floorY,
   color,
+  minFontSize,
   children,
 }: {
-  center: [number, number, number];
-  radius: number;
-  fontSize: number;
+  box: THREE.Box3;
+  floorY: number;
   color: string;
+  minFontSize: number;
   children: string;
 }) {
   const group = useRef<THREE.Group>(null);
 
+  const { center, size, outline } = useMemo(() => {
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    // Padded, so the outline never coincides with a vertical wall of a part
+    // standing exactly on its bounding box.
+    const geometry = new THREE.BufferGeometry().setFromPoints(
+      footprintCorners(box.min, box.max).map((c) => new THREE.Vector3(c.x, floorY, c.z)),
+    );
+    const outline = new THREE.LineLoop(geometry, new THREE.LineBasicMaterial({ color }));
+    return { center, size, outline };
+  }, [box, floorY, color]);
+
+  useEffect(() => () => {
+    outline.geometry.dispose();
+    (outline.material as THREE.Material).dispose();
+  }, [outline]);
+
+  const [quadrant, setQuadrant] = useState(0);
   useFrame(({ camera }) => {
-    const node = group.current;
-    if (!node) return;
-    const dx = camera.position.x - center[0];
-    const dz = camera.position.z - center[2];
-    const len = Math.hypot(dx, dz) || 1;
-    node.position.set(center[0] + (dx / len) * radius, center[1], center[2] + (dz / len) * radius);
-    // Lay the text flat (child) and spin the group so its baseline runs across
-    // the viewing direction -- see the child's -90° rotation about X.
-    node.rotation.set(0, Math.atan2(dx, dz), 0);
+    const next = quadrantOf(camera.position, center);
+    if (next !== quadrant) setQuadrant(next);
   });
 
+  const { yaw, dir, offset, fontSize } = labelPlacement(quadrant, size, minFontSize);
+
   return (
-    <group ref={group}>
-      <Text
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={fontSize}
-        color={color}
-        letterSpacing={0.18}
-        anchorX="center"
-        anchorY="middle"
+    <>
+      {/* Already built in world coordinates -- kept outside the rotating group. */}
+      <primitive object={outline} />
+      <group
+        ref={group}
+        position={[center.x + dir.x * offset, floorY, center.z + dir.z * offset]}
+        rotation={[0, yaw, 0]}
       >
-        {children}
-      </Text>
-    </group>
+        <Text
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={fontSize}
+          color={color}
+          letterSpacing={0.18}
+          anchorX="center"
+          anchorY="middle"
+        >
+          {children}
+        </Text>
+      </group>
+    </>
   );
 }
 
@@ -176,10 +220,16 @@ function fitToModels(
 
   controls.target.copy(center);
   camera.position.copy(center).add(direction);
-  camera.near = Math.max(distance / 1000, 0.01);
-  camera.far = distance * 100;
-  camera.updateProjectionMatrix();
+  setClipPlanes(camera, distance);
   controls.update();
+}
+
+/** Applies `clipPlanes` to a camera; see viewerLayout for the reasoning. */
+function setClipPlanes(camera: THREE.PerspectiveCamera, distance: number) {
+  const { near, far } = clipPlanes(distance);
+  camera.near = near;
+  camera.far = far;
+  camera.updateProjectionMatrix();
 }
 
 function Scene({
@@ -201,9 +251,12 @@ function Scene({
   const { t } = useT();
   const theme = backgroundOf(useViewerTheme((s) => s.background));
   const partColor = partColorOf(useViewerTheme((s) => s.partColor));
+  const [originalBox, setOriginalBox] = useState<THREE.Box3 | null>(null);
+  const [defeaturedBox, setDefeaturedBox] = useState<THREE.Box3 | null>(null);
 
   useEffect(() => {
     camera.position.set(gap * 1.1, gap * 0.9, gap * 1.6);
+    setClipPlanes(camera as THREE.PerspectiveCamera, gap * 2);
   }, [camera, gap]);
 
   // Hand the toolbar (rendered outside the canvas) a way to reset the view.
@@ -221,8 +274,10 @@ function Scene({
     [feature],
   );
 
-  const labelSize = Math.max(gap * 0.055, 1.5);
-  const labelRadius = gap * 0.45;
+  const loaded = [originalBox, defeaturedBox].filter(Boolean) as THREE.Box3[];
+  const lowest = loaded.length ? Math.min(...loaded.map((b) => b.min.y)) : null;
+  const { floorY, labelY } = floorLevels(lowest, gap);
+  const minLabelSize = Math.max(gap * 0.04, 1.5);
 
   return (
     <>
@@ -237,6 +292,7 @@ function Scene({
             highlightIds={originalHi}
             baseColor={partColor}
             edgeColor={theme.edge}
+            onBounds={setOriginalBox}
           />
         </Suspense>
         <Suspense fallback={null}>
@@ -246,33 +302,38 @@ function Scene({
             highlightIds={defeaturedHi}
             baseColor={partColor}
             edgeColor={theme.edge}
+            onBounds={setDefeaturedBox}
           />
         </Suspense>
       </group>
       <Grid
-        position={[gap / 2, -0.01, 0]}
+        position={[gap / 2, floorY, 0]}
         args={[gap * 4, gap * 4]}
         cellColor={theme.gridCell}
         sectionColor={theme.gridSection}
         infiniteGrid
         fadeDistance={gap * 8}
       />
-      <FloorLabel
-        center={[0, 0.02, 0]}
-        radius={labelRadius}
-        fontSize={labelSize}
-        color={theme.label}
-      >
-        {t("viewer.original")}
-      </FloorLabel>
-      <FloorLabel
-        center={[gap, 0.02, 0]}
-        radius={labelRadius}
-        fontSize={labelSize}
-        color={theme.label}
-      >
-        {t("viewer.defeatured")}
-      </FloorLabel>
+      {originalBox && (
+        <FootprintLabel
+          box={originalBox}
+          floorY={labelY}
+          color={theme.label}
+          minFontSize={minLabelSize}
+        >
+          {t("viewer.original")}
+        </FootprintLabel>
+      )}
+      {defeaturedBox && (
+        <FootprintLabel
+          box={defeaturedBox}
+          floorY={labelY}
+          color={theme.label}
+          minFontSize={minLabelSize}
+        >
+          {t("viewer.defeatured")}
+        </FootprintLabel>
+      )}
       <OrbitControls ref={controls} makeDefault target={[gap / 2, 0, 0]} />
       <FocusTarget controls={controls} feature={feature} />
       <GizmoHelper alignment="bottom-right" margin={[64, 64]} onUpdate={() => controls.current?.update()}>
@@ -298,7 +359,9 @@ export function Viewer({
 
   return (
     <div className="relative h-full w-full">
-      <Canvas camera={{ position: [gap, gap, gap * 1.6], fov: 45, near: 0.1, far: gap * 40 }}>
+      <Canvas
+        camera={{ position: [gap, gap, gap * 1.6], fov: 45, near: gap / 25, far: gap * 20 }}
+      >
         <color attach="background" args={[theme.bg]} />
         <Scene
           originalId={originalId}
