@@ -1,6 +1,12 @@
 # Ideen
 
+
 ## Umgesetzt
+
+- Rückfrage vor "Neues Projekt": Dialog mit Hinweis, dass alle Entscheidungen gespeichert sind, dem kopierbaren Wiederaufruf-Link (`?run=…`), den Report-Downloads und einer Warnung, wenn noch Änderungen unentschieden sind. Bestätigen räumt auch den `run`-Parameter aus der URL.
+- Boden flackert nicht mehr: Kamera-near/far folgen der Betrachtungsdistanz (Verhältnis ~500 statt bis zu 32.000), und der Boden liegt unter der tatsächlichen Bauteilunterkante statt auf fixen 0,01 unter y=0.
+- Bodenbeschriftung als Grundriss-Annotation: Rechteck um die tatsächliche Grundfläche, weltfest mitdrehend, Text auf der kameranächsten der vier Kanten (springt in 90°-Schritten, statt kontinuierlich zur Kamera zu drehen).
+- Frontend-Tests: Vitest + jsdom (`npm test` im Frontend), Viewer-Layout-Mathematik in `src/viewerLayout.ts` ausgelagert und getestet, Dialog-Verhalten mit Testing Library.
 
 - Darstellung: Kanten sichtbar, hellerer Hintergrund, CAD-Stil-Viewer.
 - Original/Defeatured als Boden-Imprint-Label statt fixem Fenster-Overlay.
