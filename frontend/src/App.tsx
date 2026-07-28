@@ -1,6 +1,7 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useT } from "./i18n";
 import { useReview, useSelectedFeature } from "./store";
+import { ConfirmNewProject } from "./components/ConfirmNewProject";
 import { UploadForm } from "./components/UploadForm";
 import { FeatureList } from "./components/FeatureList";
 import { FeatureDetail } from "./components/FeatureDetail";
@@ -45,6 +46,7 @@ function Review() {
   const decide = useReview((s) => s.decide);
   const reset = useReview((s) => s.reset);
   const { t, prose } = useT();
+  const [confirming, setConfirming] = useState(false);
 
   const gap = useMemo(
     () => Math.max(20, Math.cbrt(run.statistics.volume_original || 1000) * 2.4),
@@ -56,6 +58,8 @@ function Review() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      // The confirmation dialog owns the keyboard while it is open.
+      if (confirming) return;
       const feats = run.features;
       const idx = feats.findIndex((f) => f.id === feature?.id);
       if (e.key === "j" && idx < feats.length - 1) select(feats[idx + 1].id);
@@ -65,7 +69,7 @@ function Review() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [run, feature, select, decide]);
+  }, [run, feature, select, decide, confirming]);
 
   const decided = run.features.filter((f) => f.user_decision !== "undecided").length;
   const summary = prose(run.llm_summary, run.llm_summary_en);
@@ -80,7 +84,7 @@ function Review() {
         </div>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-gray-500">{t("app.shortcuts")}</span>
-          <button onClick={reset} className="rounded bg-edge px-3 py-1 text-sm">
+          <button onClick={() => setConfirming(true)} className="rounded bg-edge px-3 py-1 text-sm">
             {t("app.newProject")}
           </button>
           <LanguageSwitch />
@@ -119,6 +123,23 @@ function Review() {
           )}
         </aside>
       </div>
+
+      {confirming && (
+        <ConfirmNewProject
+          runId={run.id}
+          projectName={project.name}
+          undecided={run.features.length - decided}
+          total={run.features.length}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false);
+            // Drop ?run=... so a reload lands on the upload form rather than
+            // re-opening the review we just left.
+            window.history.replaceState(null, "", window.location.pathname);
+            reset();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -202,6 +202,24 @@ const DICT: Record<string, Pair> = {
   "app.summary": { de: "KI-Zusammenfassung", en: "AI summary" },
   "app.noSelection": { de: "Keine Änderung ausgewählt.", en: "No change selected." },
   "app.language": { de: "Sprache", en: "Language" },
+  "app.cancel": { de: "Abbrechen", en: "Cancel" },
+
+  "confirmNew.title": { de: "Neues Projekt starten?", en: "Start a new project?" },
+  "confirmNew.saved": {
+    de: "Alle Entscheidungen und Kommentare sind bereits gespeichert. Über diesen Link öffnest du das Review später wieder:",
+    en: "All decisions and comments are already saved. This link reopens the review later:",
+  },
+  "confirmNew.copy": { de: "Link kopieren", en: "Copy link" },
+  "confirmNew.copied": { de: "Kopiert", en: "Copied" },
+  "confirmNew.report": {
+    de: "Bericht jetzt herunterladen:",
+    en: "Download the report now:",
+  },
+  "confirmNew.undecided": {
+    de: "{n} von {total} Änderungen sind noch nicht entschieden.",
+    en: "{n} of {total} changes are still undecided.",
+  },
+  "confirmNew.confirm": { de: "Neues Projekt", en: "New project" },
 
   "upload.subtitle": {
     de: "Original- und vereinfachtes STEP-Modell hochladen.",

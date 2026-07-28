@@ -12,6 +12,28 @@ type Kind = "pdf" | "bundle";
  * and reports a failure inline instead of silently doing nothing.
  */
 export function ReportActions({ runId, projectName }: { runId: string; projectName: string }) {
+  const { t } = useT();
+  return (
+    <div className="border-b border-edge px-3 py-2">
+      <ReportDownloadButtons runId={runId} projectName={projectName} label={t("report.section")} />
+    </div>
+  );
+}
+
+/**
+ * The two download buttons with their busy/failure state, without any chrome --
+ * used both in the sidebar and in the "new project" confirmation, so leaving
+ * the review always offers the same way to take the result along.
+ */
+export function ReportDownloadButtons({
+  runId,
+  projectName,
+  label,
+}: {
+  runId: string;
+  projectName: string;
+  label?: string;
+}) {
   const { t, lang } = useT();
   const [busy, setBusy] = useState<Kind | null>(null);
   const [failed, setFailed] = useState(false);
@@ -35,11 +57,13 @@ export function ReportActions({ runId, projectName }: { runId: string; projectNa
   }
 
   return (
-    <div className="border-b border-edge px-3 py-2">
+    <div>
       <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {t("report.section")}
-        </span>
+        {label && (
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {label}
+          </span>
+        )}
         <div className="ml-auto flex gap-1.5">
           <ReportButton busy={busy === "pdf"} disabled={busy !== null} onClick={() => run("pdf")}>
             {t("report.pdf")}
