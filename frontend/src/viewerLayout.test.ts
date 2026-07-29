@@ -1,11 +1,42 @@
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 import {
   clipPlanes,
   floorLevels,
   footprintCorners,
   labelPlacement,
+  modelBounds,
   quadrantOf,
 } from "./viewerLayout";
+
+describe("modelBounds", () => {
+  /** A 2x2x2 box, wrapped like the viewer wraps a loaded glTF scene. */
+  function placedCube(x: number): THREE.Object3D {
+    const group = new THREE.Group();
+    group.add(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2)));
+    group.position.set(x, 0, 0);
+    return group;
+  }
+
+  it("reports the model where it actually stands", () => {
+    const box = modelBounds(placedCube(80));
+    expect(box.getCenter(new THREE.Vector3()).x).toBeCloseTo(80);
+    expect(box.min.x).toBeCloseTo(79);
+    expect(box.max.x).toBeCloseTo(81);
+  });
+
+  it("does not count the object's position twice", () => {
+    // The bug: translating the already-world-space box by the model's position
+    // put the defeatured footprint at 2*gap, a full gap beside its part.
+    const gap = 80;
+    expect(modelBounds(placedCube(gap)).getCenter(new THREE.Vector3()).x).not.toBeCloseTo(2 * gap);
+  });
+
+  it("leaves a model at the origin untouched", () => {
+    const box = modelBounds(placedCube(0));
+    expect(box.getCenter(new THREE.Vector3()).x).toBeCloseTo(0);
+  });
+});
 
 describe("clipPlanes", () => {
   it("keeps the far/near ratio small enough for the depth buffer", () => {

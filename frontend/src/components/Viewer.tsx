@@ -10,6 +10,7 @@ import {
   floorLevels,
   footprintCorners,
   labelPlacement,
+  modelBounds,
   quadrantOf,
 } from "../viewerLayout";
 import { backgroundOf, partColorOf, useViewerTheme } from "../viewerTheme";
@@ -97,8 +98,7 @@ function Model({
   const [px, py, pz] = position;
   useEffect(() => {
     if (!onBounds) return;
-    cloned.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(cloned).translate(new THREE.Vector3(px, py, pz));
+    const box = modelBounds(cloned);
     if (!box.isEmpty()) onBounds(box);
   }, [cloned, onBounds, px, py, pz]);
 

@@ -1,10 +1,26 @@
 // Pure geometry helpers behind the 3D viewer's floor plane and footprint
 // labels. They live outside Viewer.tsx so the arithmetic that decides where a
 // label lands -- and how much depth precision the camera gets -- can be checked
-// without a WebGL context.
+// without a WebGL context. three's math and scene-graph classes run headless,
+// so a bounding box belongs here too.
+
+import * as THREE from "three";
 
 /** Padding around a footprint, as a fraction of its larger side. */
 const FOOTPRINT_PAD = 0.06;
+
+/**
+ * World-space bounds of a model that is already placed in the scene.
+ *
+ * `setFromObject` expands over each mesh's `matrixWorld`, so the object's own
+ * position is *already* part of the result. Translating by that position again
+ * counts the offset twice -- which parked the defeatured model's footprint a
+ * full gap to the side of the part it belongs to.
+ */
+export function modelBounds(object: THREE.Object3D): THREE.Box3 {
+  object.updateMatrixWorld(true);
+  return new THREE.Box3().setFromObject(object);
+}
 
 export interface Extent {
   x: number;
